@@ -1,6 +1,8 @@
 import json
+import time
 
 from discord.ext.commands import Bot
+
 
 BOT_PREFIX = ("?", "!")
 
@@ -8,6 +10,8 @@ with open('data.json') as json_data:
     d = json.load(json_data)
     TOKEN = d["token"]
 
+SERVERNAME = "BotTest"
+MASTERROLE = "Boss"
 
 client = Bot(command_prefix=BOT_PREFIX)
 
@@ -72,20 +76,67 @@ class GameList:
         return None
 
 
+class Permission_manager():
+    master_role = None
+
+    def updt_role(self, name, server):
+        for e in server.roles:
+            if e.name == name:
+                self.master_role = e
+                return
+        print("Master role not found")
+
+    def get_role(self, name, server):
+        for e in server.roles:
+            print(e)
+            if e.name == name:
+                return e
+        return None
+
+    def check_permission(self, author):
+        print("master =", self.master_role)
+        print(author.roles)
+        if self.master_role in author.roles:
+            return True
+        else:
+            return False
+
 gameList = GameList()
+permManag = Permission_manager()
+
 gameList.add("League of Legends", "lol")
 gameList.add("Counter Strike Global Offensive", "csgo")
 # {"League of Legends": "LoL", "Dota 2": "Dota"}
+
+
+def get_server(name):
+    for e in client.servers:
+        if e.name == name:
+            print("Server '{0}' found".format(name))
+            return e
+    print("Server '{0}' not found".format(name))
+    return None
+
+@client.event
+async def on_ready():
+    print('Logged in as')
+    print(client.user.name)
+    print(client.user.id)
+    print('------')
+    server = get_server(SERVERNAME)
+    permManag.updt_role(MASTERROLE, server)
+    
 
 
 @client.command(name="jeux",
                 description="Liste de tout jeux qui ont leurs propres channels.",
                 brief="Jeux disponnible.",
                 aliases=["games, roles"],
-                pass_context=False)
+                pass_context=True)
 # Retourne la liste de tout les jeux disponibles sur le serveur
-async def get_game_list():
+async def get_game_list(ctx):
     string = "Les jeux diponnibles sont:\n"
+    print(ctx.message.author.roles)
     for e in gameList.get_list():
         string += "- " + e[0] + " (" + e[1] + ")\n"
     # str ="\n- ".join(list(gameList.keys()) + " (" + gameList.values() + ")")
@@ -98,10 +149,16 @@ async def get_game_list():
                 description="Ajoute un jeu à la liste, et créer leschans correspondants",
                 brief="Réservé aux admin",
                 aliases=["nJeu"],
-                pass_context=False)
-async def add_game_to_list(game, nickname=None):
-    gameList.add(game, nickname)
-    await client.say(game + " successfuly added !")
+                pass_context=True)
+async def add_game_to_list(ctx, game, nickname=None):
+    if not permManag.check_permission(ctx.message.author):
+        await client.say("Sorry you're not allowed to use that :/")
+        return
+
+    if gameList.add(game, nickname):
+        await client.say(game + " successfuly added !")
+    else:
+        await client.say(game + " already exist.")
 
 
 @client.command(name="isPresent",
