@@ -1,8 +1,8 @@
 import json
-import time
+
 
 from discord.ext.commands import Bot
-
+from discord import utils
 
 BOT_PREFIX = ("?", "!")
 
@@ -79,19 +79,13 @@ class GameList:
 class Permission_manager():
     master_role = None
 
+    # Met à jour le role "Master"
     def updt_role(self, name, server):
         for e in server.roles:
             if e.name == name:
                 self.master_role = e
                 return
         print("Master role not found")
-
-    def get_role(self, name, server):
-        for e in server.roles:
-            print(e)
-            if e.name == name:
-                return e
-        return None
 
     def check_permission(self, author):
         print("master =", self.master_role)
@@ -101,12 +95,21 @@ class Permission_manager():
         else:
             return False
 
+
+# Permet de trouver un role en fonction du serveur
+def get_role(name, server):
+    for e in server.roles:
+        if e.name == name:
+            return e
+    return None
+
 gameList = GameList()
 permManag = Permission_manager()
 
 gameList.add("League of Legends", "lol")
 gameList.add("Counter Strike Global Offensive", "csgo")
 # {"League of Legends": "LoL", "Dota 2": "Dota"}
+
 
 
 def get_server(name):
@@ -125,7 +128,6 @@ async def on_ready():
     print('------')
     server = get_server(SERVERNAME)
     permManag.updt_role(MASTERROLE, server)
-    
 
 
 @client.command(name="jeux",
@@ -148,7 +150,7 @@ async def get_game_list(ctx):
 @client.command(name="nouveau_jeu",
                 description="Ajoute un jeu à la liste, et créer leschans correspondants",
                 brief="Réservé aux admin",
-                aliases=["nJeu"],
+                aliases=["nJeu, newGame, ng"],
                 pass_context=True)
 async def add_game_to_list(ctx, game, nickname=None):
     if not permManag.check_permission(ctx.message.author):
@@ -172,5 +174,21 @@ async def search_game(search):
         await client.say(result.name + " found !")
         return
     await client.say("Sorry, maybe tou should search somewhere else :/")
+
+
+# TODO: Test de rang de role inférieur
+@client.command(name="join",
+                description="Rejoins un role",
+                brief="Rejoins un role",
+                aliases=["j"],
+                pass_context=True)
+async def join_role(ctx, role_name):
+    user = ctx.message.author
+    role = utils.get(user.server.roles, name=role_name)
+    if role in ctx.message.author.roles:
+        await client.say("Tu as déjà ce rôle.")
+        return
+    await client.add_roles(user, role)
+    await client.say("Tu as bien était ajouté !")
 
 client.run(TOKEN)
