@@ -9,9 +9,9 @@ BOT_PREFIX = ("?", "!")
 with open('data.json') as json_data:
     d = json.load(json_data)
     TOKEN = d["token"]
-
-SERVERNAME = "BotTest"
-MASTERROLE = "Boss"
+    SERVERNAME = d["server"]
+    MASTERROLE = d["master_role"]
+    UPPERBOUND = d["upper_bound"]
 
 client = Bot(command_prefix=BOT_PREFIX)
 
@@ -76,24 +76,34 @@ class GameList:
         return None
 
 
-class Permission_manager():
-    master_role = None
+class PermissionManager:
+    master_roles = []
+    upper_bound_role = None
 
     # Met à jour le role "Master"
-    def updt_role(self, name, server):
-        for e in server.roles:
-            if e.name == name:
-                self.master_role = e
-                return
-        print("Master role not found")
+    def add_master_role(self, role):
+        self.master_roles.append(role)
 
-    def check_permission(self, author):
-        print("master =", self.master_role)
+    def remove_master_role(self, role):
+        self.master_roles.remove(role)
+
+    def check_master_permission(self, author):
+        print("master =", self.master_roles)
         print(author.roles)
-        if self.master_role in author.roles:
+        if self.master_roles in author.roles:
             return True
         else:
             return False
+
+    def updt_upper_bound_role(self, role):
+        self.upper_bound_role = role
+
+    # Check if the role is one we can freely join
+    def check_join_permission(self, role):
+        if not self.upper_bound_role:
+            return True
+        else:
+            return self.upper_bound_role > role
 
 
 # Permet de trouver un role en fonction du serveur
@@ -104,12 +114,11 @@ def get_role(name, server):
     return None
 
 gameList = GameList()
-permManag = Permission_manager()
+permManag = PermissionManager()
 
 gameList.add("League of Legends", "lol")
 gameList.add("Counter Strike Global Offensive", "csgo")
 # {"League of Legends": "LoL", "Dota 2": "Dota"}
-
 
 
 def get_server(name):
@@ -117,8 +126,8 @@ def get_server(name):
         if e.name == name:
             print("Server '{0}' found".format(name))
             return e
-    print("Server '{0}' not found".format(name))
-    return None
+    raise NameError("Server '{0}' not found".format(name))
+    #return None
 
 @client.event
 async def on_ready():
@@ -127,8 +136,16 @@ async def on_ready():
     print(client.user.id)
     print('------')
     server = get_server(SERVERNAME)
-    permManag.updt_role(MASTERROLE, server)
-
+    role = utils.get(server.roles, name=MASTERROLE)
+    if role:
+        permManag.add_master_role(role)
+    else:
+        print("Master role '{0}' not found".format(MASTERROLE))
+    role = utils.get(server.roles, name=UPPERBOUND)
+    if role:
+        permManag.updt_upper_bound_role(role)
+    else:
+        print("Master role '{0}' not found".format(UPPERBOUND))
 
 @client.command(name="jeux",
                 description="Liste de tout jeux qui ont leurs propres channels.",
@@ -153,7 +170,7 @@ async def get_game_list(ctx):
                 aliases=["nJeu, newGame, ng"],
                 pass_context=True)
 async def add_game_to_list(ctx, game, nickname=None):
-    if not permManag.check_permission(ctx.message.author):
+    if not permManag.check_master_permission(ctx.message.author):
         await client.say("Sorry you're not allowed to use that :/")
         return
 
@@ -185,6 +202,9 @@ async def search_game(search):
 async def join_role(ctx, role_name):
     user = ctx.message.author
     role = utils.get(user.server.roles, name=role_name)
+    if not permManag.check_join_permission(role):
+        await client.say("Impossible d'avoir ce rôle via cette commande")
+        return
     if role in ctx.message.author.roles:
         await client.say("Tu as déjà ce rôle.")
         return
