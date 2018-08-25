@@ -163,23 +163,6 @@ async def get_game_list(ctx):
     await client.say(string)
 
 
-# TODO: Ajouter la vérifications des permissions
-@client.command(name="nouveau_jeu",
-                description="Ajoute un jeu à la liste, et créer leschans correspondants",
-                brief="Réservé aux admin",
-                aliases=["nJeu, newGame, ng"],
-                pass_context=True)
-async def add_game_to_list(ctx, game, nickname=None):
-    if not permManag.check_master_permission(ctx.message.author):
-        await client.say("Sorry you're not allowed to use that :/")
-        return
-
-    if gameList.add(game, nickname):
-        await client.say(game + " successfuly added !")
-    else:
-        await client.say(game + " already exist.")
-
-
 @client.command(name="isPresent",
                 description="Dit si le jeu est présent ou non",
                 brief="Dit si le jeu est présent ou non",
@@ -193,11 +176,10 @@ async def search_game(search):
     await client.say("Sorry, maybe tou should search somewhere else :/")
 
 
-# TODO: Test de rang de role inférieur
-@client.command(name="join",
+@client.command(name="rejoindre",
                 description="Rejoins un role",
                 brief="Rejoins un role",
-                aliases=["j"],
+                aliases=["r", "join", "j"],
                 pass_context=True)
 async def join_role(ctx, role_name):
     user = ctx.message.author
@@ -210,5 +192,53 @@ async def join_role(ctx, role_name):
         return
     await client.add_roles(user, role)
     await client.say("Tu as bien était ajouté !")
+
+
+@client.command(name="quitter",
+                description="Quitte un role",
+                brief="Quitte un role",
+                aliases=["q", "quit", "leave", "l"],
+                pass_context=True)
+async def quit_role(ctx, role_name):
+    user = ctx.message.author
+    name = gameList.find_game(role_name)
+    game = True
+    if not name:
+        name = role_name
+        game = False
+    role = utils.get(user.server.roles, name=name)
+    if not role:
+        await client.say("Role inconnu.")
+        if game:
+            # Si il fait partie de la liste de jeu mais n'a pas de role
+            # TODO: pm master ?
+            pass
+        return
+    if not permManag.check_join_permission(role):
+        await client.say("Impossible de quitter ce rôle via cette commande")
+        return
+    await client.remove_roles(user, role)
+    await client.say("Au revoir _{0}_ :wave:".format(role.name))
+
+
+# TODO: Ajouter la vérifications des permissions
+@client.command(name="nouveau_jeu",
+                description="Ajoute un jeu à la liste, et créer leschans correspondants",
+                brief="Réservé aux admin",
+                hidden=True,
+                aliases=["nJeu, nj, newGame, ng"],
+                pass_context=True)
+async def add_game_to_list(ctx, game, nickname=None):
+    if not permManag.check_master_permission(ctx.message.author):
+        await client.say("Sorry you're not allowed to use that :/")
+        return
+
+    if gameList.add(game, nickname):
+        await client.say(game + " successfuly added !")
+    else:
+        await client.say(game + " already exist.")
+
+
+
 
 client.run(TOKEN)
