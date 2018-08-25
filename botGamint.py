@@ -121,6 +121,7 @@ gameList.add("Counter Strike Global Offensive", "csgo")
 # {"League of Legends": "LoL", "Dota 2": "Dota"}
 
 
+
 def get_server(name):
     for e in client.servers:
         if e.name == name:
@@ -183,7 +184,21 @@ async def search_game(search):
                 pass_context=True)
 async def join_role(ctx, role_name):
     user = ctx.message.author
-    role = utils.get(user.server.roles, name=role_name)
+    name = gameList.find_game(role_name).name
+    game = True
+    if not name:
+        name = role_name
+        game = False
+    role = utils.get(user.server.roles, name=name)
+    if not role:
+        if game:
+            # Si il fait partie de la liste de jeu mais n'a pas de role
+            print("Oh no, '{0}' was not created".format(name))
+            # TODO: pm master ?
+            await client.say("Role inconnu, un modo devrait le créer bientôt.")
+        else:
+            await client.say("Role inconnu.")
+        return
     if not permManag.check_join_permission(role):
         await client.say("Impossible d'avoir ce rôle via cette commande")
         return
@@ -201,19 +216,20 @@ async def join_role(ctx, role_name):
                 pass_context=True)
 async def quit_role(ctx, role_name):
     user = ctx.message.author
-    name = gameList.find_game(role_name)
+    name = gameList.find_game(role_name).name
     game = True
     if not name:
         name = role_name
         game = False
     role = utils.get(user.server.roles, name=name)
     if not role:
-        await client.say("Role inconnu.")
         if game:
             # Si il fait partie de la liste de jeu mais n'a pas de role
+            print("Oh no, '{0}' was not created".format(name))
             # TODO: pm master ?
-            pass
-        return
+            await client.say("Role inconnu, un modo devrait le créer bientôt.")
+        else:
+            await client.say("Role inconnu.")
     if not permManag.check_join_permission(role):
         await client.say("Impossible de quitter ce rôle via cette commande")
         return
@@ -239,6 +255,21 @@ async def add_game_to_list(ctx, game, nickname=None):
         await client.say(game + " already exist.")
 
 
+# TODO: Ajouter la vérifications des permissions
+@client.command(name="supprimer_jeu",
+                description="Enleve un jeu à la liste",
+                brief="Réservé aux admin",
+                hidden=True,
+                aliases=["sJeu, delGame, dg"],
+                pass_context=True)
+async def add_game_to_list(ctx, game, nickname=None):
+    if not permManag.check_master_permission(ctx.message.author):
+        await client.say("Sorry you're not allowed to use that :/")
+        return
 
+    if gameList.add(game, nickname):
+        await client.say(game + " successfuly added !")
+    else:
+        await client.say(game + " already exist.")
 
 client.run(TOKEN)
