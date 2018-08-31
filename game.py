@@ -5,7 +5,7 @@ class Game:
     def __init__(self, name, main_nick_name=None):
         self.name = name
         self.nicknames = []  # The 1st one il the "main nickname" which will serve to createsub channel
-        print(main_nick_name)
+        print("Adding game: " + name + " (" + main_nick_name + ")")
         if not main_nick_name:
             main_nick_name = name
         self.nicknames.append(main_nick_name)

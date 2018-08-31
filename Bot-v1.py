@@ -31,6 +31,18 @@ def get_server(name):
     raise NameError("Server '{0}' not found".format(name))
 
 
+def get_role_from_name_or_nickname(server, role_name):
+    game = gameList.find_game(role_name)
+    is_in_list = True
+    if not game:
+        name = role_name
+        is_in_list = False
+    else:
+        name = game.name
+    role = utils.get(server.roles, name=name)
+    return role
+
+
 @client.event
 async def on_ready():
     print('Logged in as')
@@ -84,20 +96,13 @@ async def search_game(search):
                 pass_context=True)
 async def join_role(ctx, role_name):
     user = ctx.message.author
-    name = gameList.find_game(role_name).name
-    game = True
-    if not name:
-        name = role_name
-        game = False
-    role = utils.get(user.server.roles, name=name)
+
+    role = get_role_from_name_or_nickname(user.server, role_name)
+
     if not role:
-        if game:
-            # Si il fait partie de la liste de jeu mais n'a pas de role
-            print("Oh no, '{0}' was not created".format(name))
-            await client.say("Role inconnu, un modo devrait le créer bientôt.")
-        else:
-            await client.say("Role inconnu.")
+        await client.say("Role inconnu.")
         return
+
     if not permManag.check_join_permission(role):
         await client.say("Impossible d'avoir ce rôle via cette commande")
         return
@@ -105,7 +110,7 @@ async def join_role(ctx, role_name):
         await client.say("Tu as déjà ce rôle.")
         return
     await client.add_roles(user, role)
-    await client.say("Tu as bien était ajouté !")
+    await client.say("Tu as bien été ajouté !")
 
 
 @client.command(name="quitter",
@@ -115,19 +120,9 @@ async def join_role(ctx, role_name):
                 pass_context=True)
 async def quit_role(ctx, role_name):
     user = ctx.message.author
-    name = gameList.find_game(role_name).name
-    game = True
-    if not name:
-        name = role_name
-        game = False
-    role = utils.get(user.server.roles, name=name)
-    if not role:
-        if game:
-            # Si il fait partie de la liste de jeu mais n'a pas de role
-            print("Oh no, '{0}' was not created".format(name))
-            await client.say("Role inconnu, un modo devrait le créer bientôt.")
-        else:
-            await client.say("Role inconnu.")
+
+    role = get_role_from_name_or_nickname(user.server, role_name)
+
     if not permManag.check_join_permission(role):
         await client.say("Impossible de quitter ce rôle via cette commande")
         return
@@ -139,7 +134,7 @@ async def quit_role(ctx, role_name):
                 description="Ajoute un jeu à la liste, et créer leschans correspondants",
                 brief="Réservé aux admin",
                 hidden=True,
-                aliases=["nJeu, nj, newGame, ng"],
+                aliases=["nJeu", "nj", "newGame", "ng"],
                 pass_context=True)
 async def add_game_to_list(ctx, game, nickname=None):
     if not permManag.check_master_permission(ctx.message.author):

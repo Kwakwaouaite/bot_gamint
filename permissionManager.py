@@ -12,7 +12,7 @@ class PermissionManager:
         self.master_roles.remove(role)
 
     def check_master_permission(self, author):
-        print("master =", self.master_roles)
+        print("master =", self.master_roles.name)
         print(author.roles)
         if self.master_roles in author.roles:
             return True
