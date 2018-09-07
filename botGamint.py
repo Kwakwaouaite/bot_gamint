@@ -12,6 +12,7 @@ with open('data.json') as json_data:
     SERVERNAME = d["server"]
     MASTERROLE = d["master_role"]
     UPPERBOUND = d["upper_bound"]
+    print(d["game"])
 
 client = Bot(command_prefix=BOT_PREFIX)
 
@@ -63,6 +64,14 @@ class GameList:
             print("Name or Nickname already exist")
             return False
         # TODO: créer les chan
+
+    def remove(self, name_or_nick):
+
+        game = self.find_game(name_or_nick)
+
+        if not game:
+            return None
+
 
     def get_list(self):
         for e in self.gameList:
@@ -119,7 +128,6 @@ permManag = PermissionManager()
 gameList.add("League of Legends", "lol")
 gameList.add("Counter Strike Global Offensive", "csgo")
 # {"League of Legends": "LoL", "Dota 2": "Dota"}
-
 
 
 def get_server(name):
@@ -194,7 +202,6 @@ async def join_role(ctx, role_name):
         if game:
             # Si il fait partie de la liste de jeu mais n'a pas de role
             print("Oh no, '{0}' was not created".format(name))
-            # TODO: pm master ?
             await client.say("Role inconnu, un modo devrait le créer bientôt.")
         else:
             await client.say("Role inconnu.")
@@ -260,14 +267,13 @@ async def add_game_to_list(ctx, game, nickname=None):
                 description="Enleve un jeu à la liste",
                 brief="Réservé aux admin",
                 hidden=True,
-                aliases=["sJeu, delGame, dg"],
+                aliases=["sJeu", "delGame", "dg"],
                 pass_context=True)
-async def add_game_to_list(ctx, game, nickname=None):
+async def remove_game(ctx, game):
     if not permManag.check_master_permission(ctx.message.author):
-        await client.say("Sorry you're not allowed to use that :/")
         return
 
-    if gameList.add(game, nickname):
+    if gameList.add(game):
         await client.say(game + " successfuly added !")
     else:
         await client.say(game + " already exist.")

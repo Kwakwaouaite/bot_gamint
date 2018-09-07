@@ -12,12 +12,10 @@ class PermissionManager:
         self.master_roles.remove(role)
 
     def check_master_permission(self, author):
-        print("master =", self.master_roles.name)
-        print(author.roles)
-        if self.master_roles in author.roles:
-            return True
-        else:
-            return False
+        for e in self.master_roles:
+            if e in author.roles:
+                return True
+        return False
 
     def updt_upper_bound_role(self, role):
         self.upper_bound_role = role
